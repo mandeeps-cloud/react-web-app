@@ -111,68 +111,68 @@ spec:
           value: $(params.IMAGE):$(params.TAG)
         - name: FORMAT
           value: "docker"
-    - name: check-ui-deployment
-      taskRef:
-        name: kubernetes-actions
-        kind: Task
-      params:
-        - name: script
-          value: |
-            kubectl -n $(params.NAMESPACE) describe deployment ui >/dev/null 2>/dev/null
-            if [[ $? -eq ]]; then
-               printf yes | tee /tekton/results/output-result
-            else
-               printf no | tee /tekton/results/output-result
-            fi
-      runAfter:
-        - build-push-image
-      workspaces:
-        - name: kubeconfig-dir
-          workspace: kubeconfig-dir
-    - name: patch-ui-image
-      taskRef:
-        name: kubernetes-actions
-        kind: Task
-      params:
-        - name: script
-          value: |
-            kubectl patch deployment ui --patch='{"spec":{"template":{"spec":{
-              "containers":[{
-              "name": "ui",
-              "image": "$(params.IMAGE):$(params.TAG)"
-              }]
-            }}}}' -n $(params.NAMESPACE)
-      when:
-        - input: "$(tasks.check-ui-deployment.results.output-result)"
-          operator: in
-          values: ["yes"]
-      workspaces:
-        - name: kubeconfig-dir
-          workspace: kubeconfig-dir
-    - name: create-deployment
-      taskRef:
-        name: kubernetes-actions
-        kind: Task
-      when:
-        - input: "$(tasks.check-ui-deployment.results.output-result)"
-          operator: in
-          values: ["no"]
-      params:
-        - name: script
-          value: |
-            kubectl apply -f  config/03-ui
-            [[ "$(params.K8S_VARIANT)" == "k8s" ]] && \
-            kubectl apply -f  config/04-kubernetes/42-ui-ingress.yaml
-            # patch the latest build image
-            kubectl patch deployment ui --patch='{"spec":{"template":{"spec":{
-            "containers":[{
-              "name": "ui",
-              "image": "$(params.IMAGE):$(params.TAG)"
-              }]
-            }}}}' -n $(params.NAMESPACE)
-      workspaces:
-        - name: manifest-dir
-          workspace: shared-workspace
-        - name: kubeconfig-dir
-          workspace: kubeconfig-dir
+    # - name: check-ui-deployment
+    #   taskRef:
+    #     name: kubernetes-actions
+    #     kind: Task
+    #   params:
+    #     - name: script
+    #       value: |
+    #         kubectl -n $(params.NAMESPACE) describe deployment ui >/dev/null 2>/dev/null
+    #         if [[ $? -eq 0 ]]; then
+    #           printf yes | tee /tekton/results/output-result
+    #         else
+    #           printf no | tee /tekton/results/output-result
+    #         fi
+    #   runAfter:
+    #     - build-push-image
+    #   workspaces:
+    #     - name: kubeconfig-dir
+    #       workspace: kubeconfig-dir
+    # - name: patch-ui-image
+    #   taskRef:
+    #     name: kubernetes-actions
+    #     kind: Task
+    #   params:
+    #     - name: script
+    #       value: |
+    #         kubectl patch deployment ui --patch='{"spec":{"template":{"spec":{
+    #           "containers":[{
+    #           "name": "ui",
+    #           "image": "$(params.IMAGE):$(params.TAG)"
+    #           }]
+    #         }}}}' -n $(params.NAMESPACE)
+    #   when:
+    #     - input: "$(tasks.check-ui-deployment.results.output-result)"
+    #       operator: in
+    #       values: ["yes"]
+    #   workspaces:
+    #     - name: kubeconfig-dir
+    #       workspace: kubeconfig-dir
+    # - name: create-deployment
+    #   taskRef:
+    #     name: kubernetes-actions
+    #     kind: Task
+    #   when:
+    #     - input: "$(tasks.check-ui-deployment.results.output-result)"
+    #       operator: in
+    #       values: ["no"]
+    #   params:
+    #     - name: script
+    #       value: |
+    #         kubectl apply -f  config/03-ui
+    #         [[ "$(params.K8S_VARIANT)" == "k8s" ]] && \
+    #         kubectl apply -f  config/04-kubernetes/42-ui-ingress.yaml
+    #         # patch the latest build image
+    #         kubectl patch deployment ui --patch='{"spec":{"template":{"spec":{
+    #         "containers":[{
+    #           "name": "ui",
+    #           "image": "$(params.IMAGE):$(params.TAG)"
+    #           }]
+    #         }}}}' -n $(params.NAMESPACE)
+    #   workspaces:
+    #     - name: manifest-dir
+    #       workspace: shared-workspace
+    #     - name: kubeconfig-dir
+    #       workspace: kubeconfig-dir
 
